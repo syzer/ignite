@@ -66,9 +66,7 @@ public class IgniteHadoopFileSystemCounterWriter implements HadoopCounterWriter 
         for (Map.Entry<String, String> e : ((HadoopDefaultJobInfo)jobInfo).properties().entrySet())
             hadoopCfg.set(e.getKey(), e.getValue());
 
-        String user = jobInfo.user();
-
-        user = IgfsUtils.fixUserName(user);
+        String user = IgfsUtils.fixUserName(jobInfo.user());
 
         String dir = jobInfo.property(COUNTER_WRITER_DIR_PROPERTY);
 
