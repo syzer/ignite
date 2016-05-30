@@ -243,7 +243,7 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
         }
 
         if (usrNameMapper != null && usrNameMapper instanceof LifecycleAware)
-            ((LifecycleAware)usrNameMapper).stop();
+            ((LifecycleAware)usrNameMapper).start();
     }
 
     /** {@inheritDoc} */
