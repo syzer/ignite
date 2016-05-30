@@ -25,14 +25,18 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 
 /**
- * Name mapper which maps one user name to another based on predefined dictionary.
+ * Name mapper which maps one user name to another based on predefined dictionary. If name is not found in the
+ * dictionary, or dictionary is not defined, either passed user name or some default value could be returned.
  */
-public class BasicUserNameMapper implements UserNameMapper, LifecycleAware {
+public class BasicUserNameMapper implements UserNameMapper {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** Mappings. */
     private Map<String, String> mappings;
+
+    /** Whether to use default user name. */
+    private boolean useDfltUsrName;;
 
     /** Default user name. */
     private String dfltUsrName;
@@ -43,18 +47,7 @@ public class BasicUserNameMapper implements UserNameMapper, LifecycleAware {
 
         String res = mappings.get(name);
 
-        return res != null ? res : dfltUsrName;
-    }
-
-    /** {@inheritDoc} */
-    @Override public void start() throws IgniteException {
-        if (mappings == null)
-            throw new IgniteException("Mappings cannot be null.");
-    }
-
-    /** {@inheritDoc} */
-    @Override public void stop() throws IgniteException {
-        // No-op.
+        return res != null ? res : useDfltUsrName ? dfltUsrName : name;
     }
 
     /**
@@ -62,7 +55,7 @@ public class BasicUserNameMapper implements UserNameMapper, LifecycleAware {
      *
      * @return Mappings.
      */
-    public Map<String, String> getMappings() {
+    @Nullable public Map<String, String> getMappings() {
         return mappings;
     }
 
@@ -71,14 +64,33 @@ public class BasicUserNameMapper implements UserNameMapper, LifecycleAware {
      *
      * @param mappings Mappings.
      */
-    public void setMappings(Map<String, String> mappings) {
+    public void setMappings(@Nullable Map<String, String> mappings) {
         this.mappings = mappings;
+    }
+
+    /**
+     * Get whether to use default user name when there is no mapping for current user name.
+     *
+     * @return Whether to use default user name.
+     */
+    public boolean isUseDefaultUserName() {
+        return useDfltUsrName;
+    }
+
+    /**
+     * Set whether to use default user name when there is no mapping for current user name.
+     *
+     * @param useDfltUsrName Whether to use default user name.
+     */
+    public void setUseDefaultUserName(boolean useDfltUsrName) {
+        this.useDfltUsrName = useDfltUsrName;
     }
 
     /**
      * Get default user name (optional).
      * <p>
-     * This user name will be used if provided mappings doesn't contain mapping for the given user name.
+     * This user name will be used if provided mappings doesn't contain mapping for the given user name and
+     * {#isUseDefaultUserName} is set to {@code true}.
      * <p>
      * Defaults to {@code null}.
      *
