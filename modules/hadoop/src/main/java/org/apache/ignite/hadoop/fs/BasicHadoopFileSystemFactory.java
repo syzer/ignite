@@ -265,7 +265,8 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
         else
             out.writeInt(-1);
 
-        out.writeObject(usrNameMapper);
+        // TODO: Return
+        //out.writeObject(usrNameMapper);
     }
 
     /** {@inheritDoc} */
@@ -281,6 +282,7 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
                 cfgPaths[i] = U.readString(in);
         }
 
-        usrNameMapper = (UserNameMapper) in.readObject();
+        // TODO: Return
+        // usrNameMapper = (UserNameMapper) in.readObject();
     }
 }
