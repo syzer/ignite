@@ -23,7 +23,6 @@ import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.internal.processors.hadoop.fs.HadoopFileSystemsUtils;
 import org.apache.ignite.internal.processors.hadoop.fs.HadoopLazyConcurrentMap;
-import org.apache.ignite.internal.processors.igfs.IgfsUtils;
 
 import java.io.IOException;
 import java.net.URI;
@@ -47,7 +46,7 @@ public class CachingHadoopFileSystemFactory extends BasicHadoopFileSystemFactory
     private final transient HadoopLazyConcurrentMap<String, FileSystem> cache = new HadoopLazyConcurrentMap<>(
         new HadoopLazyConcurrentMap.ValueFactory<String, FileSystem>() {
             @Override public FileSystem createValue(String key) throws IOException {
-                return getWithConvertedName0(key);
+                return getWithMappedName(key);
             }
         }
     );

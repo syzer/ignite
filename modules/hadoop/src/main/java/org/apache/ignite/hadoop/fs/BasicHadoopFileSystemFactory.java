@@ -73,24 +73,14 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
     @Override public final FileSystem get(String name) throws IOException {
         String name0 = IgfsUtils.fixUserName(name);
 
-        if (usrNameMapper != null)
+        if (usrNameMapper != null) {
             name0 = usrNameMapper.map(name0);
 
-        // If mapper returned null, we will use current user, so we "fix" user name again.
-        name0 = IgfsUtils.fixUserName(name0);
+            // If mapper returned null, we will use current user, so we "fix" user name again.
+            name0 = IgfsUtils.fixUserName(name0);
+        }
 
-        return getWithConvertedName0(name0);
-    }
-
-    /**
-     * Get file system.
-     *
-     * @param usrName Converted user name.
-     * @return File system.
-     * @throws IOException If failed.
-     */
-    protected FileSystem getWithMappedName(String usrName) throws IOException {
-        return getWithConvertedName0(usrName);
+        return getWithMappedName(name0);
     }
 
     /**
@@ -100,7 +90,7 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
      * @return File system.
      * @throws IOException If failed.
      */
-    protected FileSystem getWithConvertedName0(String usrName) throws IOException {
+    protected FileSystem getWithMappedName(String usrName) throws IOException {
         assert cfg != null;
 
         try {
@@ -205,17 +195,17 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
      *
      * @return User name mapper.
      */
-    @Nullable public UserNameMapper getUserNameConverter() {
+    @Nullable public UserNameMapper getUserNameMapper() {
         return usrNameMapper;
     }
 
     /**
-     * Set optional user name mapper. See {@link #getUserNameConverter()} for more information.
+     * Set optional user name mapper. See {@link #getUserNameMapper()} for more information.
      *
-     * @param usrNameConverter User name mapper.
+     * @param usrNameMapper User name mapper.
      */
-    public void setUserNameConverter(@Nullable UserNameMapper usrNameConverter) {
-        this.usrNameMapper = usrNameConverter;
+    public void setUserNameMapper(@Nullable UserNameMapper usrNameMapper) {
+        this.usrNameMapper = usrNameMapper;
     }
 
     /** {@inheritDoc} */
