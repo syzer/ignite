@@ -71,16 +71,18 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
 
     /** {@inheritDoc} */
     @Override public final FileSystem get(String name) throws IOException {
-        String name0 = IgfsUtils.fixUserName(name);
+//        String name0 = IgfsUtils.fixUserName(name);
+//
+//        if (usrNameMapper != null) {
+//            name0 = usrNameMapper.map(name0);
+//
+//            // If mapper returned null, we will use current user, so we "fix" user name again.
+//            name0 = IgfsUtils.fixUserName(name0);
+//        }
+//
+//        return getWithMappedName(name0);
 
-        if (usrNameMapper != null) {
-            name0 = usrNameMapper.map(name0);
-
-            // If mapper returned null, we will use current user, so we "fix" user name again.
-            name0 = IgfsUtils.fixUserName(name0);
-        }
-
-        return getWithMappedName(name0);
+        return getWithMappedName(IgfsUtils.fixUserName(name));
     }
 
     /**
@@ -242,16 +244,14 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
             }
         }
 
-        // TODO
-//        if (usrNameMapper != null && usrNameMapper instanceof LifecycleAware)
-//            ((LifecycleAware)usrNameMapper).start();
+        if (usrNameMapper != null && usrNameMapper instanceof LifecycleAware)
+            ((LifecycleAware)usrNameMapper).start();
     }
 
     /** {@inheritDoc} */
     @Override public void stop() throws IgniteException {
-        // TODO
-//        if (usrNameMapper != null && usrNameMapper instanceof LifecycleAware)
-//            ((LifecycleAware)usrNameMapper).stop();
+        if (usrNameMapper != null && usrNameMapper instanceof LifecycleAware)
+            ((LifecycleAware)usrNameMapper).stop();
     }
 
     /** {@inheritDoc} */
@@ -267,8 +267,7 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
         else
             out.writeInt(-1);
 
-        // TODO: Return
-        //out.writeObject(usrNameMapper);
+        out.writeObject(usrNameMapper);
     }
 
     /** {@inheritDoc} */
@@ -284,7 +283,6 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
                 cfgPaths[i] = U.readString(in);
         }
 
-        // TODO: Return
-        // usrNameMapper = (UserNameMapper) in.readObject();
+        usrNameMapper = (UserNameMapper) in.readObject();
     }
 }
