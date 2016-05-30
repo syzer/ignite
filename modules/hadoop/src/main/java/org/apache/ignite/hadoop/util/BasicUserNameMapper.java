@@ -34,11 +34,16 @@ public class BasicUserNameMapper implements UserNameMapper, LifecycleAware {
     /** Mappings. */
     private Map<String, String> mappings;
 
+    /** Default user name. */
+    private String dfltUsrName;
+
     /** {@inheritDoc} */
     @Nullable @Override public String map(String name) {
         assert mappings != null;
 
-        return mappings.get(name);
+        String res = mappings.get(name);
+
+        return res != null ? res : dfltUsrName;
     }
 
     /** {@inheritDoc} */
@@ -68,6 +73,28 @@ public class BasicUserNameMapper implements UserNameMapper, LifecycleAware {
      */
     public void setMappings(Map<String, String> mappings) {
         this.mappings = mappings;
+    }
+
+    /**
+     * Get default user name (optional).
+     * <p>
+     * This user name will be used if provided mappings doesn't contain mapping for the given user name.
+     * <p>
+     * Defaults to {@code null}.
+     *
+     * @return Default user name.
+     */
+    @Nullable public String getDefaultUserName() {
+        return dfltUsrName;
+    }
+
+    /**
+     * Set default user name (optional). See {@link #getDefaultUserName()} for more information.
+     *
+     * @param dfltUsrName Default user name.
+     */
+    public void setDefaultUserName(@Nullable String dfltUsrName) {
+        this.dfltUsrName = dfltUsrName;
     }
 
     /** {@inheritDoc} */

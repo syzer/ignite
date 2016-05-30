@@ -251,11 +251,15 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
                 throw new IgniteException("Failed to resolve secondary file system URI: " + uri);
             }
         }
+
+        if (usrNameMapper != null && usrNameMapper instanceof LifecycleAware)
+            ((LifecycleAware)usrNameMapper).stop();
     }
 
     /** {@inheritDoc} */
     @Override public void stop() throws IgniteException {
-        // No-op.
+        if (usrNameMapper != null && usrNameMapper instanceof LifecycleAware)
+            ((LifecycleAware)usrNameMapper).stop();
     }
 
     /** {@inheritDoc} */
