@@ -242,14 +242,16 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
             }
         }
 
-        if (usrNameMapper != null && usrNameMapper instanceof LifecycleAware)
-            ((LifecycleAware)usrNameMapper).start();
+        // TODO
+//        if (usrNameMapper != null && usrNameMapper instanceof LifecycleAware)
+//            ((LifecycleAware)usrNameMapper).start();
     }
 
     /** {@inheritDoc} */
     @Override public void stop() throws IgniteException {
-        if (usrNameMapper != null && usrNameMapper instanceof LifecycleAware)
-            ((LifecycleAware)usrNameMapper).stop();
+        // TODO
+//        if (usrNameMapper != null && usrNameMapper instanceof LifecycleAware)
+//            ((LifecycleAware)usrNameMapper).stop();
     }
 
     /** {@inheritDoc} */
