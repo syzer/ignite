@@ -17,8 +17,8 @@
 
 package org.apache.ignite.hadoop.util;
 
-import org.apache.avro.reflect.Nullable;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;

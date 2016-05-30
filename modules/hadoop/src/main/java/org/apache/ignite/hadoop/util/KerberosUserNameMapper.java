@@ -18,6 +18,7 @@
 package org.apache.ignite.hadoop.util;
 
 import org.apache.ignite.IgniteException;
+import org.apache.ignite.internal.processors.igfs.IgfsUtils;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.internal.S;
 import org.apache.ignite.lifecycle.LifecycleAware;
@@ -44,6 +45,8 @@ public class KerberosUserNameMapper implements UserNameMapper, LifecycleAware {
     @Nullable @Override public String map(String name) {
         assert state != null;
 
+        name = IgfsUtils.fixUserName(name);
+
         switch (state) {
             case NAME:
                 return name;
@@ -63,9 +66,6 @@ public class KerberosUserNameMapper implements UserNameMapper, LifecycleAware {
 
     /** {@inheritDoc} */
     @Override public void start() throws IgniteException {
-        if (realm.startsWith("@"))
-            throw new IgniteException("Realm should not start with '@' character: " + realm);
-
         if (!F.isEmpty(instance))
             state = F.isEmpty(realm) ? State.NAME_INSTANCE : State.NAME_INSTANCE_REALM;
         else
