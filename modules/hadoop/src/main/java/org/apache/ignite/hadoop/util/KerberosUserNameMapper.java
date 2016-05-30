@@ -24,10 +24,10 @@ import org.apache.ignite.lifecycle.LifecycleAware;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Kerberos user name converter. Use it when you need to map simple user name to Kerberos principal.
+ * Kerberos user name mapper. Use it when you need to map simple user name to Kerberos principal.
  * E.g. from {@code johndoe} to {@code johndoe@YOUR.REALM.COM} or {@code johndoe/admin@YOUR.REALM.COM}.
  */
-public class KerberosUserNameConverter implements UserNameConverter, LifecycleAware {
+public class KerberosUserNameMapper implements UserNameMapper, LifecycleAware {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -41,7 +41,7 @@ public class KerberosUserNameConverter implements UserNameConverter, LifecycleAw
     private volatile State state;
 
     /** {@inheritDoc} */
-    @Nullable @Override public String convert(String name) {
+    @Nullable @Override public String map(String name) {
         assert state != null;
 
         switch (state) {
@@ -115,7 +115,7 @@ public class KerberosUserNameConverter implements UserNameConverter, LifecycleAw
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(KerberosUserNameConverter.class, this);
+        return S.toString(KerberosUserNameMapper.class, this);
     }
 
     /**

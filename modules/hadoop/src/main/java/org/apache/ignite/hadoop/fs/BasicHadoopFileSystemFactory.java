@@ -21,8 +21,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.hadoop.fs.v1.IgniteHadoopFileSystem;
-import org.apache.ignite.hadoop.util.KerberosUserNameConverter;
-import org.apache.ignite.hadoop.util.UserNameConverter;
+import org.apache.ignite.hadoop.util.KerberosUserNameMapper;
+import org.apache.ignite.hadoop.util.UserNameMapper;
 import org.apache.ignite.internal.processors.hadoop.HadoopUtils;
 import org.apache.ignite.internal.processors.igfs.IgfsUtils;
 import org.apache.ignite.internal.util.typedef.internal.U;
@@ -53,8 +53,8 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
     /** File system config paths. */
     private String[] cfgPaths;
 
-    /** User name converter. */
-    private UserNameConverter usrNameConverter;
+    /** User name mapper. */
+    private UserNameMapper usrNameMapper;
 
     /** Configuration of the secondary filesystem, never null. */
     protected transient Configuration cfg;
@@ -73,10 +73,10 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
     @Override public final FileSystem get(String name) throws IOException {
         String name0 = IgfsUtils.fixUserName(name);
 
-        if (usrNameConverter != null)
-            name0 = usrNameConverter.convert(name0);
+        if (usrNameMapper != null)
+            name0 = usrNameMapper.map(name0);
 
-        // If converter returned null, we will use current user, so we "fix" user name again.
+        // If mapper returned null, we will use current user, so we "fix" user name again.
         name0 = IgfsUtils.fixUserName(name0);
 
         return getWithConvertedName0(name0);
@@ -89,7 +89,7 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
      * @return File system.
      * @throws IOException If failed.
      */
-    protected FileSystem getWithConvertedName(String usrName) throws IOException {
+    protected FileSystem getWithMappedName(String usrName) throws IOException {
         return getWithConvertedName0(usrName);
     }
 
@@ -193,29 +193,29 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
     }
 
     /**
-     * Get optional user name converter.
+     * Get optional user name mapper.
      * <p>
      * When IGFS is invoked from Hadoop, user name is passed along the way to ensure that request will be performed
      * with proper user context. User name is passed in a simple form and doesn't contain any extended information,
-     * such as host, domain or Kerberos realm. You may use name converter to translate plain user name to full user
+     * such as host, domain or Kerberos realm. You may use name mapper to translate plain user name to full user
      * name required by security engine of the underlying file system.
      * <p>
-     * For example you may want to use {@link KerberosUserNameConverter} to user name from {@code "johndoe"} to
+     * For example you may want to use {@link KerberosUserNameMapper} to user name from {@code "johndoe"} to
      * {@code "johndoe@YOUR.REALM.COM"}.
      *
-     * @return User name converter.
+     * @return User name mapper.
      */
-    @Nullable public UserNameConverter getUserNameConverter() {
-        return usrNameConverter;
+    @Nullable public UserNameMapper getUserNameConverter() {
+        return usrNameMapper;
     }
 
     /**
-     * Set optional user name converter. See {@link #getUserNameConverter()} for more information.
+     * Set optional user name mapper. See {@link #getUserNameConverter()} for more information.
      *
-     * @param usrNameConverter User name converter.
+     * @param usrNameConverter User name mapper.
      */
-    public void setUserNameConverter(@Nullable UserNameConverter usrNameConverter) {
-        this.usrNameConverter = usrNameConverter;
+    public void setUserNameConverter(@Nullable UserNameMapper usrNameConverter) {
+        this.usrNameMapper = usrNameConverter;
     }
 
     /** {@inheritDoc} */
@@ -271,7 +271,7 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
         else
             out.writeInt(-1);
 
-        out.writeObject(usrNameConverter);
+        out.writeObject(usrNameMapper);
     }
 
     /** {@inheritDoc} */
@@ -287,6 +287,6 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
                 cfgPaths[i] = U.readString(in);
         }
 
-        usrNameConverter = (UserNameConverter) in.readObject();
+        usrNameMapper = (UserNameMapper) in.readObject();
     }
 }

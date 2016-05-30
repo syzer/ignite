@@ -25,9 +25,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 
 /**
- * Name converter which simply maps one user name to another based on predefined dictionary.
+ * Name mapper which maps one user name to another based on predefined dictionary.
  */
-public class MappingUserNameConverter implements UserNameConverter, LifecycleAware {
+public class BasicUserNameMapper implements UserNameMapper, LifecycleAware {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -35,7 +35,7 @@ public class MappingUserNameConverter implements UserNameConverter, LifecycleAwa
     private Map<String, String> mappings;
 
     /** {@inheritDoc} */
-    @Nullable @Override public String convert(String name) {
+    @Nullable @Override public String map(String name) {
         assert mappings != null;
 
         return mappings.get(name);
@@ -72,6 +72,6 @@ public class MappingUserNameConverter implements UserNameConverter, LifecycleAwa
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(MappingUserNameConverter.class, this);
+        return S.toString(BasicUserNameMapper.class, this);
     }
 }

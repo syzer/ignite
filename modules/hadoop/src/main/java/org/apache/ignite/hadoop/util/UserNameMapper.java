@@ -23,15 +23,15 @@ import org.jetbrains.annotations.Nullable;
 import java.io.Serializable;
 
 /**
- * Hadoop file system name converter. Used by {@link HadoopFileSystemFactory} implementation to pass proper user names
+ * Hadoop file system name mapper. Used by {@link HadoopFileSystemFactory} implementation to pass proper user names
  * to the underlying Hadoop file system.
  */
-public interface UserNameConverter extends Serializable {
+public interface UserNameMapper extends Serializable {
     /**
-     * Convert user name.
+     * Map user name.
      *
      * @param name User name.
-     * @return Converted user name.
+     * @return Mapped user name.
      */
-    @Nullable public String convert(String name);
+    @Nullable public String map(String name);
 }

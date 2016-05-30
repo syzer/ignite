@@ -21,11 +21,11 @@ import org.apache.ignite.internal.util.typedef.internal.S;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Constant user name converter. Performs all file system requests with the same user name.
+ * Constant user name mapper. Performs all file system requests with the same user name.
  * <p>
  * If {@code null} is set as a name, name of the current process owner will be used.
  */
-public class ConstantUserNameConverter implements UserNameConverter {
+public class ConstantUserNameMapper implements UserNameMapper {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -33,7 +33,7 @@ public class ConstantUserNameConverter implements UserNameConverter {
     private String usrName;
 
     /** {@inheritDoc} */
-    @Nullable @Override public String convert(String name) {
+    @Nullable @Override public String map(String name) {
         return usrName;
     }
 
@@ -59,6 +59,6 @@ public class ConstantUserNameConverter implements UserNameConverter {
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(ConstantUserNameConverter.class, this);
+        return S.toString(ConstantUserNameMapper.class, this);
     }
 }

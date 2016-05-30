@@ -60,7 +60,7 @@ public class CachingHadoopFileSystemFactory extends BasicHadoopFileSystemFactory
     }
 
     /** {@inheritDoc} */
-    @Override public FileSystem getWithConvertedName(String name) throws IOException {
+    @Override public FileSystem getWithMappedName(String name) throws IOException {
         return cache.getOrCreate(name);
     }
 
