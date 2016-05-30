@@ -1,12 +1,10 @@
 package org.apache.ignite.hadoop.util;
 
 import org.apache.ignite.IgniteException;
-import org.apache.ignite.igfs.IgfsUserContext;
 import org.apache.ignite.internal.processors.igfs.IgfsUtils;
 import org.apache.ignite.testframework.GridTestUtils;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.Callable;
 

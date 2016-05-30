@@ -21,8 +21,6 @@ import org.apache.ignite.internal.processors.igfs.IgfsUtils;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Map;
-
 /**
  * Tests for Kerberos name mapper.
  */
