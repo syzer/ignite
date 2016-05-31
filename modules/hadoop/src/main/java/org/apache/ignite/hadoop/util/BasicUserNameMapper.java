@@ -17,9 +17,7 @@
 
 package org.apache.ignite.hadoop.util;
 
-import org.apache.ignite.IgniteException;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.lifecycle.LifecycleAware;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;

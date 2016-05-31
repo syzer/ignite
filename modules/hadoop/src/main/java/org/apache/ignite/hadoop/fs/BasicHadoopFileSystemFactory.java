@@ -71,18 +71,16 @@ public class BasicHadoopFileSystemFactory implements HadoopFileSystemFactory, Ex
 
     /** {@inheritDoc} */
     @Override public final FileSystem get(String name) throws IOException {
-//        String name0 = IgfsUtils.fixUserName(name);
-//
-//        if (usrNameMapper != null) {
-//            name0 = usrNameMapper.map(name0);
-//
-//            // If mapper returned null, we will use current user, so we "fix" user name again.
-//            name0 = IgfsUtils.fixUserName(name0);
-//        }
-//
-//        return getWithMappedName(name0);
+        String name0 = IgfsUtils.fixUserName(name);
 
-        return getWithMappedName(IgfsUtils.fixUserName(name));
+        if (usrNameMapper != null) {
+            name0 = usrNameMapper.map(name0);
+
+            // If mapper returned null, we will use current user, so we "fix" user name again.
+            name0 = IgfsUtils.fixUserName(name0);
+        }
+
+        return getWithMappedName(name0);
     }
 
     /**
