@@ -47,7 +47,7 @@ public class CachingHadoopFileSystemFactory extends BasicHadoopFileSystemFactory
     private final transient HadoopLazyConcurrentMap<String, FileSystem> cache = new HadoopLazyConcurrentMap<>(
         new HadoopLazyConcurrentMap.ValueFactory<String, FileSystem>() {
             @Override public FileSystem createValue(String key) throws IOException {
-                return getWithMappedName(key);
+                return CachingHadoopFileSystemFactory.super.getWithMappedName(key);
             }
         }
     );
@@ -61,8 +61,7 @@ public class CachingHadoopFileSystemFactory extends BasicHadoopFileSystemFactory
 
     /** {@inheritDoc} */
     @Override public FileSystem getWithMappedName(String name) throws IOException {
-//        return cache.getOrCreate(name);
-        return cache.getOrCreate(IgfsUtils.fixUserName(name));
+        return cache.getOrCreate(name);
     }
 
     /** {@inheritDoc} */
