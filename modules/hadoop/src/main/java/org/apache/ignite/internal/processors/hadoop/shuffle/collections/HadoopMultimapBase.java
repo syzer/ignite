@@ -17,11 +17,6 @@
 
 package org.apache.ignite.internal.processors.hadoop.shuffle.collections;
 
-import java.io.DataInput;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.internal.processors.hadoop.HadoopJobInfo;
@@ -33,6 +28,12 @@ import org.apache.ignite.internal.processors.hadoop.shuffle.streams.HadoopOffhea
 import org.apache.ignite.internal.util.GridLongList;
 import org.apache.ignite.internal.util.offheap.unsafe.GridUnsafeMemory;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.DataInput;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.apache.ignite.internal.processors.hadoop.HadoopJobProperty.SHUFFLE_OFFHEAP_PAGE_SIZE;
 import static org.apache.ignite.internal.processors.hadoop.HadoopJobProperty.get;
@@ -222,7 +223,7 @@ public abstract class HadoopMultimapBase implements HadoopMultimap {
         private long allocateNextPage(long requestedSize) {
             int writtenSize = writtenSize();
 
-            long newPageSize = Math.max(writtenSize + requestedSize, pageSize);
+            long newPageSize = ((writtenSize + requestedSize) % pageSize + 1) * pageSize;
             long newPagePtr = mem.allocate(newPageSize);
 
             pages.add(newPageSize);
@@ -370,6 +371,28 @@ public abstract class HadoopMultimapBase implements HadoopMultimap {
         /** {@inheritDoc} */
         @Override public void remove() {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    /**
+     * Page.
+     */
+    private static class Page {
+        /** Pointer. */
+        private final long ptr;
+
+        /** Size. */
+        private final long size;
+
+        /**
+         * Constructor.
+         *
+         * @param ptr Pointer.
+         * @param size Size.
+         */
+        public Page(long ptr, long size) {
+            this.ptr = ptr;
+            this.size = size;
         }
     }
 }
