@@ -223,8 +223,10 @@ public abstract class HadoopMultimapBase implements HadoopMultimap {
         private long allocateNextPage(long requestedSize) {
             int writtenSize = writtenSize();
 
-            long newPageSize = ((writtenSize + requestedSize) % pageSize + 1) * pageSize;
+            long newPageSize = nextPageSize(writtenSize + requestedSize);
             long newPagePtr = mem.allocate(newPageSize);
+
+            System.out.println("ALLOCATED: " + newPageSize);
 
             HadoopOffheapBuffer b = out.buffer();
 
@@ -245,10 +247,40 @@ public abstract class HadoopMultimapBase implements HadoopMultimap {
 
             if (oldPage != null)
                 allPages.add(oldPage);
-            // TODO: Must deallocate at this point.
-//                deallocate(oldPage);
 
             return b.move(requestedSize);
+        }
+
+        /**
+         * Get next page size.
+         *
+         * @param required Required amount of data.
+         * @return Next page size.
+         */
+        private long nextPageSize(long required) {
+            long pages = (required / pageSize) + 1;
+
+            long pagesPow2 = nextPowerOfTwo(pages);
+
+            return pagesPow2 * pageSize;
+        }
+
+        /**
+         * Get next power of two which greater or equal to the given number. Naive implementation.
+         *
+         * @param val Number
+         * @return Nearest pow2.
+         */
+        private long nextPowerOfTwo(long val) {
+            long res = 1;
+
+            while (res < val)
+                res = res << 1;
+
+            if (res < 0)
+                throw new IllegalArgumentException("Value is too big to find positive pow2: " + val);
+
+            return res;
         }
 
         /**
