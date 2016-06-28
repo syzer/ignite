@@ -158,7 +158,7 @@ public class GridH2RowRange implements Message {
 
     /** {@inheritDoc} */
     @Override public byte directType() {
-        return -27;
+        return -34;
     }
 
     /** {@inheritDoc} */

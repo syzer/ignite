@@ -91,22 +91,22 @@ public class GridH2ValueMessageFactory implements MessageFactory {
             case -22:
                 return new GridH2CacheObject();
 
-            case -23:
+            case -30:
                 return new GridH2IndexRangeRequest();
 
-            case -24:
+            case -31:
                 return new GridH2IndexRangeResponse();
 
-            case -25:
+            case -32:
                 return new GridH2RowMessage();
 
-            case -26:
+            case -33:
                 return new GridH2QueryRequest();
 
-            case -27:
+            case -34:
                 return new GridH2RowRange();
 
-            case -28:
+            case -35:
                 return new GridH2RowRangeBounds();
         }
 

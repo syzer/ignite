@@ -259,7 +259,7 @@ public class GridH2IndexRangeResponse implements Message {
 
     /** {@inheritDoc} */
     @Override public byte directType() {
-        return -24;
+        return -31;
     }
 
     /** {@inheritDoc} */

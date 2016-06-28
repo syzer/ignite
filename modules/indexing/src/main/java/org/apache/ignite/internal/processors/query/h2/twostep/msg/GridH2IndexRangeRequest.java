@@ -188,7 +188,7 @@ public class GridH2IndexRangeRequest implements Message {
 
     /** {@inheritDoc} */
     @Override public byte directType() {
-        return -23;
+        return -30;
     }
 
     /** {@inheritDoc} */

@@ -216,7 +216,7 @@ public class IgniteSqlSplitterSelfTest extends GridCommonAbstractTest {
      */
     public void testDistributedJoins() throws Exception {
         CacheConfiguration ccfg = cacheConfig("persOrg", true,
-            Integer.class, Person.class, Integer.class, Organization.class);
+            Integer.class, Person2.class, Integer.class, Organization.class);
 
         IgniteCache<Integer, Object> c = ignite(0).getOrCreateCache(ccfg);
 
@@ -309,7 +309,7 @@ public class IgniteSqlSplitterSelfTest extends GridCommonAbstractTest {
         Random rnd = new GridRandom();
 
         for (int i = 0; i < persons; i++) {
-            Person p = new Person();
+            Person2 p = new Person2();
 
             p.name = "Person" + i;
             p.orgId = rnd.nextInt(orgs);
@@ -317,7 +317,7 @@ public class IgniteSqlSplitterSelfTest extends GridCommonAbstractTest {
             c.put(key++, p);
         }
 
-        String select = "select count(*) from Organization o, Person p where p.orgId = o._key";
+        String select = "select count(*) from Organization o, Person2 p where p.orgId = o._key";
 
         String plan = (String)c.query(new SqlFieldsQuery("explain " + select)
             .setDistributedJoins(true).setEnforceJoinOrder(enforceJoinOrder).setPageSize(pageSize))
@@ -491,7 +491,7 @@ public class IgniteSqlSplitterSelfTest extends GridCommonAbstractTest {
         }
     }
 
-    private static class Person implements Serializable {
+    private static class Person2 implements Serializable {
         @QuerySqlField
         int orgId;
 

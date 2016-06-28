@@ -199,11 +199,7 @@ public abstract class GridH2IndexBase extends BaseIndex {
      * @return Filtered iterator.
      */
     protected Iterator<GridH2Row> filter(Iterator<GridH2Row> iter, IndexingQueryFilter filter) {
-        IgniteBiPredicate<Object, Object> p = null;
-
-        IndexingQueryFilter f = filters.get();
-
-        return new FilteringIterator(iter, U.currentTimeMillis(), f);
+        return new FilteringIterator(iter, U.currentTimeMillis(), filter, getTable().spaceName());
     }
 
     /**
@@ -266,15 +262,17 @@ public abstract class GridH2IndexBase extends BaseIndex {
         /**
          * @param iter Iterator.
          * @param time Time for expired rows filtering.
+         * @param qryFilter Filter.
+         * @param spaceName Space name.
          */
         protected FilteringIterator(Iterator<GridH2Row> iter, long time,
-            IndexingQueryFilter qryFilter) {
+            IndexingQueryFilter qryFilter, String spaceName) {
             super(iter);
 
             this.time = time;
 
             if (qryFilter != null) {
-                this.fltr = qryFilter.forSpace(((GridH2Table)getTable()).spaceName());
+                this.fltr = qryFilter.forSpace(spaceName);
 
                 this.isValRequired = qryFilter.isValueRequired();
             } else {

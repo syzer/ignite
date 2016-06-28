@@ -96,7 +96,7 @@ public class GridH2RowMessage implements Message {
 
     /** {@inheritDoc} */
     @Override public byte directType() {
-        return -25;
+        return -32;
     }
 
     /** {@inheritDoc} */
