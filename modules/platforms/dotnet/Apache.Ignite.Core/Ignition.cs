@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-#pragma warning disable 618  // deprecated SpringConfigUrl
 namespace Apache.Ignite.Core 
 {
     using System;
@@ -37,6 +36,7 @@ namespace Apache.Ignite.Core
     using Apache.Ignite.Core.Impl.Memory;
     using Apache.Ignite.Core.Impl.Unmanaged;
     using Apache.Ignite.Core.Lifecycle;
+    using Apache.Ignite.Core.Resource;
     using BinaryReader = Apache.Ignite.Core.Impl.Binary.BinaryReader;
     using UU = Apache.Ignite.Core.Impl.Unmanaged.UnmanagedUtils;
 
@@ -241,7 +241,7 @@ namespace Apache.Ignite.Core
         private static void CheckServerGc(IgniteConfiguration cfg)
         {
             if (!cfg.SuppressWarnings && !GCSettings.IsServerGC && Interlocked.CompareExchange(ref _gcWarn, 1, 0) == 0)
-                Console.WriteLine("GC server mode is not enabled, this could lead to less " +
+                Logger.LogWarning("GC server mode is not enabled, this could lead to less " +
                     "than optimal performance on multi-core machines (to enable see " +
                     "http://msdn.microsoft.com/en-us/library/ms229357(v=vs.110).aspx).");
         }
@@ -272,7 +272,7 @@ namespace Apache.Ignite.Core
         }
 
         /// <summary>
-        /// Preapare configuration.
+        /// Prepare configuration.
         /// </summary>
         /// <param name="reader">Reader.</param>
         /// <param name="outStream">Response stream.</param>
@@ -309,7 +309,10 @@ namespace Apache.Ignite.Core
         private static void PrepareLifecycleBeans(BinaryReader reader, PlatformMemoryStream outStream, 
             HandleRegistry handleRegistry)
         {
-            IList<LifecycleBeanHolder> beans = new List<LifecycleBeanHolder>();
+            IList<LifecycleBeanHolder> beans = new List<LifecycleBeanHolder>
+            {
+                new LifecycleBeanHolder(new InternalLifecycleBean())   // add internal bean for events
+            };
 
             // 1. Read beans defined in Java.
             int cnt = reader.ReadInt();
@@ -689,6 +692,23 @@ namespace Apache.Ignite.Core
             /// Gets or sets the ignite.
             /// </summary>
             internal Ignite Ignite { get; set; }
+        }
+
+        /// <summary>
+        /// Internal bean for event notification.
+        /// </summary>
+        private class InternalLifecycleBean : ILifecycleBean
+        {
+            /** */
+            #pragma warning disable 649   // unused field
+            [InstanceResource] private readonly IIgnite _ignite;
+
+            /** <inheritdoc /> */
+            public void OnLifecycleEvent(LifecycleEventType evt)
+            {
+                if (evt == LifecycleEventType.BeforeNodeStop && _ignite != null)
+                    ((IgniteProxy) _ignite).Target.BeforeNodeStop();
+            }
         }
     }
 }

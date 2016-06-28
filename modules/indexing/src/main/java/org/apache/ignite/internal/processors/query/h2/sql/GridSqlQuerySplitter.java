@@ -30,6 +30,7 @@ import org.apache.ignite.internal.processors.query.h2.opt.GridH2Table;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.lang.IgnitePredicate;
 import org.h2.command.Prepared;
+import org.apache.ignite.internal.processors.query.h2.IgniteH2Indexing;
 import org.h2.jdbc.JdbcPreparedStatement;
 import org.h2.table.Column;
 import org.h2.table.IndexColumn;
@@ -288,8 +289,9 @@ public class GridSqlQuerySplitter {
         GridSqlSelect rdcQry = new GridSqlSelect().from(table(splitIdx));
 
         // Split all select expressions into map-reduce parts.
-        List<GridSqlElement> mapExps = F.addAll(new ArrayList<GridSqlElement>(mapQry.allColumns()),
-            mapQry.columns(false));
+        List<GridSqlElement> mapExps = new ArrayList<>(mapQry.allColumns());
+
+        mapExps.addAll(mapQry.columns(false));
 
         final int visibleCols = mapQry.visibleColumns();
         final int havingCol = mapQry.havingColumn();

@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.cluster.ClusterNode;
@@ -89,6 +90,7 @@ import static org.apache.ignite.internal.GridTopic.TOPIC_COMM_USER;
 import static org.apache.ignite.internal.managers.communication.GridIoPolicy.AFFINITY_POOL;
 import static org.apache.ignite.internal.managers.communication.GridIoPolicy.IDX_POOL;
 import static org.apache.ignite.internal.managers.communication.GridIoPolicy.IGFS_POOL;
+import static org.apache.ignite.internal.managers.communication.GridIoPolicy.IGFS_POOL;
 import static org.apache.ignite.internal.managers.communication.GridIoPolicy.MANAGEMENT_POOL;
 import static org.apache.ignite.internal.managers.communication.GridIoPolicy.MARSH_CACHE_POOL;
 import static org.apache.ignite.internal.managers.communication.GridIoPolicy.P2P_POOL;
@@ -115,8 +117,17 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
     /** Direct protocol version. */
     public static final byte DIRECT_PROTO_VER = 2;
 
+    /** Current IO policy. */
+    private static final ThreadLocal<Byte> CUR_PLC = new ThreadLocal<>();
+
     /** Listeners by topic. */
     private final ConcurrentMap<Object, GridMessageListener> lsnrMap = new ConcurrentHashMap8<>();
+
+    /** System listeners. */
+    private volatile GridMessageListener[] sysLsnrs;
+
+    /** Mutex for system listeners. */
+    private final Object sysLsnrsMux = new Object();
 
     /** Disconnect listeners. */
     private final Collection<GridDisconnectListener> disconnectLsnrs = new ConcurrentLinkedQueue<>();
@@ -209,6 +220,10 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
         discoDelay = ctx.config().getDiscoveryStartupDelay();
 
         marsh = ctx.config().getMarshaller();
+
+        synchronized (sysLsnrsMux) {
+            sysLsnrs = new GridMessageListener[GridTopic.values().length];
+        }
     }
 
     /**
@@ -649,6 +664,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
                 case UTILITY_CACHE_POOL:
                 case MARSH_CACHE_POOL:
                 case IDX_POOL:
+                case IGFS_POOL:
                 {
                     if (msg.isOrdered())
                         processOrderedMessage(nodeId, msg, plc, msgC);
@@ -760,7 +776,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
                 try {
                     threadProcessingMessage(true);
 
-                    GridMessageListener lsnr = lsnrMap.get(msg.topic());
+                    GridMessageListener lsnr = listenerGet0(msg.topic());
 
                     if (lsnr == null)
                         return;
@@ -769,7 +785,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
 
                     assert obj != null;
 
-                    lsnr.onMessage(nodeId, obj);
+                    invokeListener(msg.policy(), lsnr, nodeId, obj);
                 }
                 finally {
                     threadProcessingMessage(false);
@@ -837,7 +853,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
      */
     @SuppressWarnings("deprecation")
     private void processRegularMessage0(GridIoMessage msg, UUID nodeId) {
-        GridMessageListener lsnr = lsnrMap.get(msg.topic());
+        GridMessageListener lsnr = listenerGet0(msg.topic());
 
         if (lsnr == null)
             return;
@@ -846,7 +862,157 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
 
         assert obj != null;
 
-        lsnr.onMessage(nodeId, obj);
+        invokeListener(msg.policy(), lsnr, nodeId, obj);
+    }
+
+    /**
+     * Get listener.
+     *
+     * @param topic Topic.
+     * @return Listener.
+     */
+    @Nullable private GridMessageListener listenerGet0(Object topic) {
+        if (topic instanceof GridTopic)
+            return sysLsnrs[systemListenerIndex(topic)];
+        else
+            return lsnrMap.get(topic);
+    }
+
+    /**
+     * Put listener if it is absent.
+     *
+     * @param topic Topic.
+     * @param lsnr Listener.
+     * @return Old listener (if any).
+     */
+    @Nullable private GridMessageListener listenerPutIfAbsent0(Object topic, GridMessageListener lsnr) {
+        if (topic instanceof GridTopic) {
+            synchronized (sysLsnrsMux) {
+                int idx = systemListenerIndex(topic);
+
+                GridMessageListener old = sysLsnrs[idx];
+
+                if (old == null)
+                    changeSystemListener(idx, lsnr);
+
+                return old;
+            }
+        }
+        else
+            return lsnrMap.putIfAbsent(topic, lsnr);
+    }
+
+    /**
+     * Remove listener.
+     *
+     * @param topic Topic.
+     * @return Removed listener (if any).
+     */
+    @Nullable private GridMessageListener listenerRemove0(Object topic) {
+        if (topic instanceof GridTopic) {
+            synchronized (sysLsnrsMux) {
+                int idx = systemListenerIndex(topic);
+
+                GridMessageListener old = sysLsnrs[idx];
+
+                if (old != null)
+                    changeSystemListener(idx, null);
+
+                return old;
+            }
+        }
+        else
+            return lsnrMap.remove(topic);
+    }
+
+    /**
+     * Remove listener if it matches expected value.
+     *
+     * @param topic Topic.
+     * @param expected Listener.
+     * @return Result.
+     */
+    private boolean listenerRemove0(Object topic, GridMessageListener expected) {
+        if (topic instanceof GridTopic) {
+            synchronized (sysLsnrsMux) {
+                return systemListenerChange(topic, expected, null);
+            }
+        }
+        else
+            return lsnrMap.remove(topic, expected);
+    }
+
+    /**
+     * Replace listener.
+     *
+     * @param topic Topic.
+     * @param expected Old value.
+     * @param newVal New value.
+     * @return Result.
+     */
+    private boolean listenerReplace0(Object topic, GridMessageListener expected, GridMessageListener newVal) {
+        if (topic instanceof GridTopic) {
+            synchronized (sysLsnrsMux) {
+                return systemListenerChange(topic, expected, newVal);
+            }
+        }
+        else
+            return lsnrMap.replace(topic, expected, newVal);
+    }
+
+    /**
+     * Change system listener.
+     *
+     * @param topic Topic.
+     * @param expected Expected value.
+     * @param newVal New value.
+     * @return Result.
+     */
+    private boolean systemListenerChange(Object topic, GridMessageListener expected, GridMessageListener newVal) {
+        assert Thread.holdsLock(sysLsnrsMux);
+        assert topic instanceof GridTopic;
+
+        int idx = systemListenerIndex(topic);
+
+        GridMessageListener old = sysLsnrs[idx];
+
+        if (old != null && old.equals(expected)) {
+            changeSystemListener(idx, newVal);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Change systme listener at the given index.
+     *
+     * @param idx Index.
+     * @param lsnr Listener.
+     */
+    private void changeSystemListener(int idx, @Nullable GridMessageListener lsnr) {
+        assert Thread.holdsLock(sysLsnrsMux);
+
+        GridMessageListener[] res = new GridMessageListener[sysLsnrs.length];
+
+        System.arraycopy(sysLsnrs, 0, res, 0, sysLsnrs.length);
+
+        res[idx] = lsnr;
+
+        sysLsnrs = res;
+    }
+
+    /**
+     * Get index of a system listener.
+     *
+     * @param topic Topic.
+     * @return Index.
+     */
+    private int systemListenerIndex(Object topic) {
+        assert topic instanceof GridTopic;
+
+        return ((GridTopic)topic).ordinal();
     }
 
     /**
@@ -955,7 +1121,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
         if (isNew && set.endTime() != Long.MAX_VALUE)
             ctx.timeout().addTimeoutObject(set);
 
-        final GridMessageListener lsnr = lsnrMap.get(msg.topic());
+        final GridMessageListener lsnr = listenerGet0(msg.topic());
 
         if (lsnr == null) {
             if (closedTopics.contains(msg.topic())) {
@@ -1049,6 +1215,38 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
                 return;
             }
         }
+    }
+
+    /**
+     * Invoke message listener.
+     *
+     * @param plc Policy.
+     * @param lsnr Listener.
+     * @param nodeId Node ID.
+     * @param msg Message.
+     */
+    private void invokeListener(Byte plc, GridMessageListener lsnr, UUID nodeId, Object msg) {
+        Byte oldPlc = CUR_PLC.get();
+
+        boolean change = F.eq(oldPlc, plc);
+
+        if (change)
+            CUR_PLC.set(plc);
+
+        try {
+            lsnr.onMessage(nodeId, msg);
+        }
+        finally {
+            if (change)
+                CUR_PLC.set(oldPlc);
+        }
+    }
+
+    /**
+     * @return Current IO policy
+     */
+    @Nullable public static Byte currentPolicy() {
+        return CUR_PLC.get();
     }
 
     /**
@@ -1564,7 +1762,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
         GridMessageListener lsnrs;
 
         for (;;) {
-            lsnrs = lsnrMap.putIfAbsent(topic, lsnr);
+            lsnrs = listenerPutIfAbsent0(topic, lsnr);
 
             if (lsnrs == null) {
                 lsnrs = lsnr;
@@ -1577,7 +1775,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
             if (!(lsnrs instanceof ArrayListener)) { // We are putting the second listener, creating array.
                 GridMessageListener arrLsnr = new ArrayListener(lsnrs, lsnr);
 
-                if (lsnrMap.replace(topic, lsnrs, arrLsnr)) {
+                if (listenerReplace0(topic, lsnrs, arrLsnr)) {
                     lsnrs = arrLsnr;
 
                     break;
@@ -1588,7 +1786,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
                     break;
 
                 // Add operation failed because array is already empty and is about to be removed, helping and retrying.
-                lsnrMap.remove(topic, lsnrs);
+                listenerRemove0(topic, lsnrs);
             }
         }
 
@@ -1666,7 +1864,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
         if (lsnr == null) {
             closedTopics.add(topic);
 
-            lsnr = lsnrMap.remove(topic);
+            lsnr = listenerRemove0(topic);
 
             rmv = lsnr != null;
 
@@ -1677,7 +1875,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
         }
         else {
             for (;;) {
-                GridMessageListener lsnrs = lsnrMap.get(topic);
+                GridMessageListener lsnrs = listenerGet0(topic);
 
                 // If removing listener before subscription happened.
                 if (lsnrs == null) {
@@ -1697,7 +1895,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
 
                     if (!(lsnrs instanceof ArrayListener)) {
                         if (lsnrs.equals(lsnr)) {
-                            if (!lsnrMap.remove(topic, lsnrs))
+                            if (!listenerRemove0(topic, lsnrs))
                                 continue; // Retry because it can be packed to array listener.
 
                             empty = true;
@@ -1715,7 +1913,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
                             rmv = false;
 
                         if (empty)
-                            lsnrMap.remove(topic, lsnrs);
+                            listenerRemove0(topic, lsnrs);
                     }
 
                     // If removing last subscribed listener.
@@ -1807,6 +2005,16 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
      */
     public int getOutboundMessagesQueueSize() {
         return getSpi().getOutboundMessagesQueueSize();
+    }
+
+    /**
+     * Dumps SPI stats to logs in case TcpCommunicationSpi is used, no-op otherwise.
+     */
+    public void dumpStats() {
+        CommunicationSpi spi = getSpi();
+
+        if (spi instanceof TcpCommunicationSpi)
+            ((TcpCommunicationSpi)spi).dumpStats();
     }
 
     /** {@inheritDoc} */
@@ -2159,7 +2367,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
         /** {@inheritDoc} */
         @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
         @Override public void onTimeout() {
-            GridMessageListener lsnr = lsnrMap.get(topic);
+            GridMessageListener lsnr = listenerGet0(topic);
 
             if (lsnr != null) {
                 long delta = 0;
@@ -2263,9 +2471,7 @@ public class GridIoManager extends GridManagerAdapter<CommunicationSpi<Serializa
 
             for (GridTuple3<GridIoMessage, Long, IgniteRunnable> t = msgs.poll(); t != null; t = msgs.poll()) {
                 try {
-                    lsnr.onMessage(
-                        nodeId,
-                        t.get1().message());
+                    invokeListener(plc, lsnr, nodeId, t.get1().message());
                 }
                 finally {
                     if (t.get3() != null)
